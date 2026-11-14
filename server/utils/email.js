@@ -1,16 +1,40 @@
 
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+const sendEmail = async ({ to, subject, html, text }) => {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+
+    if (!apiKey || !senderEmail) {
+        throw new Error('BREVO_API_KEY and BREVO_SENDER_EMAIL must be configured');
     }
-});
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+            accept: 'application/json',
+            'api-key': apiKey,
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            sender: { name: 'EventSystem', email: senderEmail },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html,
+            textContent: text
+        })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || 'Brevo could not send the email');
+    }
+
+    return data;
+};
 
 const otpTemplates = {
     account_verification: {
@@ -173,15 +197,12 @@ export const sendOtpMail = async (gmail, otp, type) => {
         </html>
         `;
 
-        const mailOptions = {
-            from: `"EventSystem" <${process.env.EMAIL_USER}>`,
+        const info = await sendEmail({
             to: gmail,
             subject: template.subject,
             html,
             text: `${template.heading}\n${template.message}\nYour OTP is: ${otp}\nValid for 5 minutes.`
-        };
-
-        const info = await transporter.sendMail(mailOptions);
+        });
 
         return {
             success: true,
@@ -199,8 +220,7 @@ export const sendOtpMail = async (gmail, otp, type) => {
 export const bookingMail = async (gmail, eventTitle, eventDate, eventLocation, amount = 0) => {
     try {
         const formattedAmount = typeof amount === 'number' ? amount.toFixed(2) : amount || '0.00';
-        const mailOptions = {
-            from: `"EventSystem" <${process.env.EMAIL_USER}>`,
+        const info = await sendEmail({
             to: gmail,
             subject: "Event Booking Confirmation",
             html: `
@@ -210,10 +230,9 @@ export const bookingMail = async (gmail, eventTitle, eventDate, eventLocation, a
                 ${eventLocation ? `<p><strong>Location:</strong> ${eventLocation}</p>` : ''}
                 <p><strong>Amount:</strong> ₹${formattedAmount}</p>
                 <p>Thank you for choosing EventSystem!</p>
-            `
-        };
-
-        const info = await transporter.sendMail(mailOptions);
+            `,
+            text: `Your booking for ${eventTitle || 'Event'} has been confirmed. Amount: ₹${formattedAmount}`
+        });
 
         return {
             success: true,

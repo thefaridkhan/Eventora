@@ -1,31 +1,30 @@
-# EventSystem deployment on Koyeb
+# EventSystem deployment on Render
 
-This repository deploys the React client and Express API together as one Koyeb Web Service. The build creates `client/dist`, and Express serves the frontend along with the `/api` endpoints.
+This repository deploys the React client and Express API together as one Render Web Service. The build creates `client/dist`, and Express serves the frontend along with the `/api` endpoints.
 
-## Koyeb setup
+## Deploy on Render
 
-1. In Koyeb, select **Create Web Service** and connect the GitHub repository.
-2. Use the **Buildpack** builder with the repository root as the work directory.
-3. Set the build command to `npm run build`. Koyeb installs the root dependencies automatically.
-4. Leave the run command empty (the repository `Procfile` runs `npm start`) or enter `npm start`.
-5. Expose port `8000` with protocol **HTTP** and route `/`.
-6. Choose the **Free** instance.
+1. In Render, select **New** > **Blueprint** and select the GitHub repository.
+2. Render reads `render.yaml` and creates the `event-system` Web Service.
+3. During setup, provide values for the environment variables listed below.
+4. Click **Apply** to deploy. Open the service URL after the deployment succeeds.
 
-The server reads Koyeb's `PORT` environment variable automatically.
-
-## Required Koyeb environment variables
+## Required environment variables
 
 - `MONGODB_URI` — MongoDB Atlas connection string.
-- `JWT_SECRET` — a long random secret.
-- `EMAIL_USER` — Gmail address used to send OTP and booking emails.
-- `EMAIL_PASS` — a Gmail App Password, not the normal Gmail password.
+- `BREVO_API_KEY` — Brevo API key with Transactional email permission.
+- `BREVO_SENDER_EMAIL` — the verified sender email address in Brevo.
 
-Never commit these values to GitHub.
+Render generates `JWT_SECRET` automatically. Never commit any of these secret values to GitHub.
 
-## Gmail SMTP
+## Brevo email setup
 
-Enable 2-Step Verification on the Gmail account, then generate an App Password named `EventSystem` from the Google Account security settings. Store that generated password as `EMAIL_PASS` in Koyeb.
+1. In Brevo, add and verify a sender email address.
+2. Create an API key with Transactional email access.
+3. Set the verified email address as `BREVO_SENDER_EMAIL` and the API key as `BREVO_API_KEY` in Render.
+
+The application sends OTP and booking confirmation emails through Brevo's HTTPS API. This avoids the SMTP port limitation on Render's free web service.
 
 ## Health check
 
-After deployment, open `/api/health` at the Koyeb service URL. A successful response contains `status: "OK"`.
+After deployment, open `/api/health` at the Render service URL. A successful response contains `status: "OK"`.

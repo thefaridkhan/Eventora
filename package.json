@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Event Management System",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "npx concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
     "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install",
